@@ -21,6 +21,8 @@ extern "C" void convert_yolo_detections(float *predictions, int classes, int num
 
 extern "C" char *voc_names[];
 extern "C" image voc_labels[];
+extern int g_class_num;
+extern char* g_program;
 
 static float **probs;
 static box *boxes;
@@ -59,14 +61,14 @@ void *detect_in_thread(void *ptr)
     printf("\033[1;1H");
     printf("\nFPS:%.0f\n",fps);
     printf("Objects:\n\n");
-    draw_detections(det, l.side*l.side*l.n, demo_thresh, boxes, probs, voc_names, voc_labels, 20);
+    draw_detections(det, l.side*l.side*l.n, demo_thresh, boxes, probs, voc_names, voc_labels, g_class_num);
     return 0;
 }
 
 extern "C" void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam_index)
 {
     demo_thresh = thresh;
-    printf("YOLO demo\n");
+    printf("%s demo\n", g_program);
     net = parse_network_cfg(cfgfile);
     if(weightfile){
         load_weights(&net, weightfile);
@@ -104,7 +106,7 @@ extern "C" void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam
         gettimeofday(&tval_before, NULL);
         if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
         if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
-        show_image(disp, "YOLO");
+        show_image(disp, g_program);
         free_image(disp);
         cvWaitKey(1);
         pthread_join(fetch_thread, 0);
@@ -122,7 +124,6 @@ extern "C" void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam
 }
 #else
 extern "C" void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam_index){
-    fprintf(stderr, "YOLO demo needs OpenCV for webcam images.\n");
+    fprintf(stderr, "%s demo needs OpenCV for webcam images.\n", g_program);
 }
 #endif
-

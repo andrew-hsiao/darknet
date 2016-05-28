@@ -9,8 +9,16 @@
 #include "opencv2/highgui/highgui_c.h"
 #endif
 
-char *voc_names[] = {"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
-image voc_labels[20];
+const static int class_num_default = 20;
+char *voc_names_default[] = {"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
+image voc_labels_default[20];
+char *program_default = "YOLO";
+
+char **voc_names = 0;
+image *voc_labels = 0;
+
+int g_class_num = -1;
+const char* g_program = 0;
 
 void train_yolo(char *cfgfile, char *weightfile)
 {
@@ -345,7 +353,7 @@ void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
         convert_yolo_detections(predictions, l.classes, l.n, l.sqrt, l.side, 1, 1, thresh, probs, boxes, 0);
         if (nms) do_nms_sort(boxes, probs, l.side*l.side*l.n, l.classes, nms);
         //draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, 20);
-        draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, 20);
+        draw_detections(im, l.side*l.side*l.n, thresh, boxes, probs, voc_names, voc_labels, g_class_num);
         show_image(im, "predictions");
         save_image(im, "predictions");
 
@@ -362,10 +370,63 @@ void test_yolo(char *cfgfile, char *weightfile, char *filename, float thresh)
 
 void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam_index, char *filename);
 
+//The function will dynamic alloc C X (classes string) + C X (image) + char* X (class_num)
+//and init global var: voc_names, voc_labels, class_num
+void load_class_file(const char *class_fn)
+{
+    unsigned int is_customized_classes = 0;
+    //fprintf(stderr, "+load_class_file:%s\n", class_fn);
+    if(class_fn != 0) {
+        FILE *fp = fopen(class_fn, "r");
+        if(fp) {
+            //fprintf(stderr, "file open\n");
+            while(!feof(fp)) {
+                if(fgetc(fp) == '\n') {
+                    g_class_num++;
+                }
+            }
+            rewind(fp);
+            voc_names = malloc(sizeof(char*));
+
+            char cls[1024];
+            int i = 0;
+            while (fscanf(fp, "%1024s", cls) != EOF) {
+                fprintf(stderr, "%s, ", cls);
+                char* cls_str = malloc(strlen(cls)+1);
+                strcpy(cls_str, cls);
+                voc_names[i] = cls_str;
+                i++;
+            }
+            voc_labels = calloc(g_class_num, sizeof(image));
+            is_customized_classes = 1;
+            g_program = class_fn;
+            fclose(fp);
+        }
+    }
+    if(is_customized_classes == 0)
+    {
+        voc_names = voc_names_default;
+        voc_labels = voc_labels_default;
+        g_class_num = class_num_default;
+        g_program = program_default;
+        fprintf(stderr, "voc_name:");
+
+        int i = 0;
+        for (i=0; i< g_class_num; i++) {
+            fprintf(stderr, "%s, ", voc_names[i]);
+        }
+        fprintf(stderr, "\n");
+    }
+    //fprintf(stderr, "-load_class_file\n");
+}
+
 void run_yolo(int argc, char **argv)
 {
+    char *class_fn = find_char_arg(argc, argv, "-f", "");
+    load_class_file(class_fn);
+
     int i;
-    for(i = 0; i < 20; ++i){
+    for(i = 0; i < g_class_num; ++i){
         char buff[256];
         sprintf(buff, "data/labels/%s.png", voc_names[i]);
         voc_labels[i] = load_image_color(buff, 0, 0);
@@ -373,6 +434,7 @@ void run_yolo(int argc, char **argv)
 
     float thresh = find_float_arg(argc, argv, "-thresh", .2);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
+
     if(argc < 4){
         fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);
         return;
