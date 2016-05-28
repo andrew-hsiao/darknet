@@ -20,10 +20,35 @@ image *voc_labels = 0;
 int g_class_num = -1;
 const char* g_program = 0;
 
-void train_yolo(char *cfgfile, char *weightfile)
+//+work_directory:
+//  -train.txt
+//  --work_directory/images/image.jpg
+//  +backup
+//      -temporary output trainned weight
+//  +images
+//      -image_id_1.jpg
+//  +labels
+//      -image_id_1.txt
+//      --cls_id x y w h (processed)
+void train_yolo(char *cfgfile, char *weightfile, char* work_dir)
 {
-    char *train_images = "/data/voc/train.txt";
-    char *backup_directory = "/home/pjreddie/backup/";
+    unsigned const int MAX_PATH = 1024;
+    char train_images[MAX_PATH];
+    char backup_directory[MAX_PATH];
+
+    if (strlen(work_dir) >= MAX_PATH - 1) {
+        fprintf(stderr, "error: work directory lenght is more than %d", MAX_PATH);
+        return;
+    }
+
+    if(work_dir != 0 && strlen(work_dir) > 0) {
+        sprintf(train_images, "%s%s", work_dir, "/train.txt");
+        sprintf(backup_directory, "%s%s", work_dir, "/backup/");
+    } else {
+        sprintf(train_images, "%s", "./train.txt");
+        sprintf(backup_directory, "%s", "./backup/");
+    }
+
     srand(time(0));
     data_seed = time(0);
     char *base = basecfg(cfgfile);
@@ -423,6 +448,7 @@ void load_class_file(const char *class_fn)
 void run_yolo(int argc, char **argv)
 {
     char *class_fn = find_char_arg(argc, argv, "-f", "");
+    char *work_dir = find_char_arg(argc, argv, "-w", ".");
     load_class_file(class_fn);
 
     int i;
@@ -444,7 +470,7 @@ void run_yolo(int argc, char **argv)
     char *weights = (argc > 4) ? argv[4] : 0;
     char *filename = (argc > 5) ? argv[5]: 0;
     if(0==strcmp(argv[2], "test")) test_yolo(cfg, weights, filename, thresh);
-    else if(0==strcmp(argv[2], "train")) train_yolo(cfg, weights);
+    else if(0==strcmp(argv[2], "train")) train_yolo(cfg, weights, work_dir);
     else if(0==strcmp(argv[2], "valid")) validate_yolo(cfg, weights);
     else if(0==strcmp(argv[2], "recall")) validate_yolo_recall(cfg, weights);
     else if(0==strcmp(argv[2], "demo")) demo_yolo(cfg, weights, thresh, cam_index, filename);
