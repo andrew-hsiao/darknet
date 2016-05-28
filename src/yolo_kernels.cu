@@ -19,8 +19,9 @@ extern "C" {
 extern "C" image ipl_to_image(IplImage* src);
 extern "C" void convert_yolo_detections(float *predictions, int classes, int num, int square, int side, int w, int h, float thresh, float **probs, box *boxes, int only_objectness);
 
-extern "C" char *voc_names[];
-extern "C" image voc_labels[];
+extern char **voc_names;
+extern image *voc_labels;
+
 extern int g_class_num;
 extern char* g_program;
 

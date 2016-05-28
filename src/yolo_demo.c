@@ -13,10 +13,11 @@
 image ipl_to_image(IplImage* src);
 void convert_yolo_detections(float *predictions, int classes, int num, int square, int side, int w, int h, float thresh, float **probs, box *boxes, int only_objectness);
 
-extern char *voc_names[];
-extern image voc_labels[];
 extern int g_class_num;
 extern char* g_program;
+
+extern char **voc_names;
+extern image *voc_labels;
 
 static float **probs;
 static box *boxes;
