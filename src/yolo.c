@@ -17,10 +17,16 @@ char *program_default = "YOLO";
 char **voc_names = 0;
 image *voc_labels = 0;
 
+const static char *CLASS_FILENAME = "class.txt";
+const static char *CONFIG_FOLDERNAME = "cfg";
+const static char *WEIGHT_FOLDERNAME = "weights";
+
 int g_class_num = -1;
 const char* g_program = 0;
 
 //+work_directory:
+//  -class.txt
+//  --class_name_1\nclass_name_2\n
 //  -train.txt
 //  --work_directory/images/image.jpg
 //  +backup
@@ -30,6 +36,8 @@ const char* g_program = 0;
 //  +labels
 //      -image_id_1.txt
 //      --cls_id x y w h (processed)
+//  +cfg
+//  +weights
 void train_yolo(char *cfgfile, char *weightfile, char* work_dir)
 {
     unsigned const int MAX_PATH = 1024;
@@ -447,8 +455,12 @@ void load_class_file(const char *class_fn)
 
 void run_yolo(int argc, char **argv)
 {
-    char *class_fn = find_char_arg(argc, argv, "-f", "");
+    unsigned int MAX_PATH = 1024;
+    char class_fn[MAX_PATH];
+    char config_fn[MAX_PATH];
+    char weight_fn[MAX_PATH];
     char *work_dir = find_char_arg(argc, argv, "-w", ".");
+    sprintf(class_fn, "%s/%s", work_dir, CLASS_FILENAME);
     load_class_file(class_fn);
 
     int i;
@@ -467,7 +479,14 @@ void run_yolo(int argc, char **argv)
     }
 
     char *cfg = argv[3];
-    char *weights = (argc > 4) ? argv[4] : 0;
+    sprintf(config_fn, "%s%s/%s", work_dir, CONFIG_FOLDERNAME, cfg);
+    cfg = config_fn;
+
+    char *weights = 0;
+    if(argc > 4) {
+        sprintf(weight_fn, "%s%s/%s", work_dir, WEIGHT_FOLDERNAME, argv[4]);
+        weights = weight_fn;
+    }
     char *filename = (argc > 5) ? argv[5]: 0;
     if(0==strcmp(argv[2], "test")) test_yolo(cfg, weights, filename, thresh);
     else if(0==strcmp(argv[2], "train")) train_yolo(cfg, weights, work_dir);
