@@ -421,15 +421,13 @@ void load_class_file(const char *class_fn)
             rewind(fp);
             voc_names = malloc(sizeof(char*));
 
-            char cls[1024];
+            char *cls = 0;
             int i = 0;
-            while (fscanf(fp, "%1024s", cls) != EOF) {
-                fprintf(stderr, "%s, ", cls);
-                char* cls_str = malloc(strlen(cls)+1);
-                strcpy(cls_str, cls);
-                voc_names[i] = cls_str;
+            while((cls = fgetl(fp))) {
+                voc_names[i] = cls;
                 i++;
             }
+
             voc_labels = calloc(g_class_num, sizeof(image));
             is_customized_classes = 1;
             g_program = class_fn;
@@ -460,8 +458,11 @@ void run_yolo(int argc, char **argv)
     char config_fn[MAX_PATH];
     char weight_fn[MAX_PATH];
     char *work_dir = find_char_arg(argc, argv, "-w", ".");
-    sprintf(class_fn, "%s/%s", work_dir, CLASS_FILENAME);
-    load_class_file(class_fn);
+
+    if (strcmp(work_dir, ".") != 0) {
+        sprintf(class_fn, "%s/%s", work_dir, CLASS_FILENAME);
+        load_class_file(class_fn);
+    }
 
     int i;
     for(i = 0; i < g_class_num; ++i){
