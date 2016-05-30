@@ -70,12 +70,15 @@ void demo_yolo(char *cfgfile, char *weightfile, float thresh, int cam_index, cha
     srand(2222222);
 
     if(filename){
+        fprintf(stderr, "featch from file:%s\n", filename);
         cap = cvCaptureFromFile(filename);
+        if(!cap) error("Couldn't connect to file.\n");
     }else{
+        fprintf(stderr, "featch from cam:%d\n", cam_index);
         cap = cvCaptureFromCAM(cam_index);
+        if(!cap) error("Couldn't connect to webcam.\n");
     }
 
-    if(!cap) error("Couldn't connect to webcam.\n");
     cvNamedWindow(g_program, CV_WINDOW_NORMAL);
     cvResizeWindow(g_program, 512, 512);
 
